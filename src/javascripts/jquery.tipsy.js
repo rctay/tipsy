@@ -13,7 +13,7 @@
     }
     
     Tipsy.prototype = {
-        show: function() {
+        show: function(event) {
             var title = this.getTitle();
             if (title && this.enabled) {
                 var $tip = this.tip();
@@ -22,7 +22,10 @@
                 $tip[0].className = 'tipsy'; // reset classname in case of dynamic gravity
                 $tip.remove().css({top: 0, left: 0, visibility: 'hidden', display: 'block'}).appendTo(document.body);
                 
-                var pos = $.extend({}, this.$element.offset(), {
+                var pos = $.extend({}, this.$element.offset(),
+                {
+                    top: event.pageY,
+                }, {
                     width: this.$element[0].offsetWidth,
                     height: this.$element[0].offsetHeight
                 });
@@ -44,10 +47,17 @@
                         tp = {top: pos.top + pos.height / 2 - actualHeight / 2, left: pos.left - actualWidth - this.options.offset};
                         break;
                     case 'w':
-                        tp = {top: pos.top + pos.height / 2 - actualHeight / 2, left: pos.left + pos.width + this.options.offset};
+                        tp = {top: pos.top - actualHeight / 2, left: pos.left + pos.width + this.options.offset};
                         break;
                 }
                 
+                // follow mouse' y movement
+                this.$element.bind("mousemove", this.follower = function(event) {
+                    $tip.css({
+                        top: event.pageY - actualHeight / 2
+                    });
+                });
+
                 if (gravity.length == 2) {
                     if (gravity.charAt(1) == 'w') {
                         tp.left = pos.left + pos.width / 2 - 15;
@@ -68,9 +78,9 @@
         
         hide: function() {
             if (this.options.fade) {
-                this.tip().stop().fadeOut(function() { $(this).remove(); });
+                this.tip().stop().fadeOut(function() { $(this).remove(); }).unbind("mousemove", this.follower);
             } else {
-                this.tip().remove();
+                this.tip().unbind("mousemove", this.follower).remove();
             }
         },
         
@@ -135,14 +145,14 @@
             return tipsy;
         }
         
-        function enter() {
+        function enter(event) {
             var tipsy = get(this);
             tipsy.hoverState = 'in';
             if (options.delayIn == 0) {
-                tipsy.show();
+                tipsy.show(event);
             } else {
                 tipsy.fixTitle();
-                setTimeout(function() { if (tipsy.hoverState == 'in') tipsy.show(); }, options.delayIn);
+                setTimeout(function() { if (tipsy.hoverState == 'in') tipsy.show(event); }, options.delayIn);
             }
         };
         
